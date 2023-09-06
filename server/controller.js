@@ -1,5 +1,6 @@
 require("dotenv").config();
 const Sequelize = require("sequelize");
+const { CONNECTION_STRING } = process.env;
 
 const sequelize = new Sequelize(CONNECTION_STRING, {
   dialect: "postgres",
@@ -27,7 +28,7 @@ module.exports = {
               city_id serial primary key,
               name varchar,
               rating integer,
-              country_id integer,
+              country_id INT REFERENCES countries(id),
             );
 
             insert into countries (name)
@@ -233,5 +234,73 @@ module.exports = {
         res.sendStatus(200);
       })
       .catch((err) => console.log("error seeding DB", err));
+  },
+
+  getCountries: (req, res) => {
+    sequelize
+      .query(
+        `
+      SELECT * FROM countries
+  `
+      )
+      .then((dbRes) => {
+        console.log("getCountries success!");
+        res.status(200).send(dbRes[0]);
+      });
+  },
+
+  createCity: (req, res) => {
+    const { name, rating, countryId } = req.body;
+
+    sequelize
+      .query(
+        `
+      INSERT INTO cities
+     (name,rating,countryID)
+      VALUES
+      ('${name}','${rating}','${countryId}')
+    Returning *;
+  `
+      )
+      .then((dbRes) => {
+        console.log("createCity");
+        res.status(200).send(dbRes[0]);
+      });
+  },
+  getCities: (req, res) => {
+    sequelize
+      .query(
+        `
+      name AS city,
+     rating,
+     city_id,
+      country_id,
+     name AS country,
+      FROM cities
+      JOIN countries
+      ON city_id = country_id;
+    `
+      )
+      .then((dbRes) => {
+        console.log("getCities was successful!");
+        res.status(200).send(dbRes[0]);
+      });
+  },
+  deleteCity: (req, res) => {
+    const { id } = req.params;
+
+    sequelize
+      .query(
+        `
+      DELETE FROM cities
+      WHERE id= ${id}
+
+
+    `
+      )
+      .then((dbRes) => {
+        console.log("deleteCity success");
+        res.status(200).send(dbRes[0]);
+      });
   },
 };
